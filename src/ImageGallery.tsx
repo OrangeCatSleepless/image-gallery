@@ -1,32 +1,19 @@
 'use client'
 
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, ChangeEvent } from 'react';
 import Masonry from 'react-masonry-css';
 import { useInView } from 'react-intersection-observer';
-
-/**
- * Core Functionalities:
- * {
- *   "core_functionalities": [
- *     "1. Select and open a local folder to view images",
- *     "2. Display thumbnails in a more responsive masonry layout with varying column counts for different screen sizes",
- *     "3. View full-size images in a fixed-size container when clicking on thumbnails",
- *     "4. Navigate between full-size images using mouse wheel without transition animations",
- *     "5. Navigate between full-size images using keyboard arrow keys without transition animations",
- *     "6. Close full-size image view",
- *     "7. Optimize lazy loading of thumbnails for improved performance with detailed loading indicators",
- *     "8. Prevent scrolling of underlying page when viewing full-size images",
- *     "9. Enhance thumbnail generation process for better quality and efficiency",
- *     "10. Add hover effects for thumbnails to enhance user experience",
- *     "11. Implement preloading of adjacent images to improve performance"
- *   ]
- * }
- */
 
 interface ImageData {
   id: string;
   thumbnail: string;
   fullSize: string;
+}
+
+// 扩展 InputHTMLAttributes 接口
+interface ExtendedInputHTMLAttributes extends React.InputHTMLAttributes<HTMLInputElement> {
+  webkitdirectory?: string;
+  directory?: string;
 }
 
 const ImageGallery: React.FC = () => {
@@ -62,7 +49,7 @@ const ImageGallery: React.FC = () => {
     });
   };
 
-  const handleFolderSelect = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFolderSelect = useCallback(async (event: ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (files) {
       setIsLoading(true);
@@ -88,31 +75,31 @@ const ImageGallery: React.FC = () => {
     }
   }, []);
 
-  const handleImageClick = (image: ImageData) => {
+  const handleImageClick = useCallback((image: ImageData) => {
     setSelectedImage(image);
     document.body.style.overflow = 'hidden';
-  };
+  }, []);
 
-  const handleCloseModal = () => {
+  const handleCloseModal = useCallback(() => {
     setSelectedImage(null);
     document.body.style.overflow = 'auto';
-  };
+  }, []);
 
-  const handlePrevImage = () => {
+  const handlePrevImage = useCallback(() => {
     if (selectedImage) {
       const currentIndex = images.findIndex(img => img.id === selectedImage.id);
       const prevIndex = (currentIndex - 1 + images.length) % images.length;
       setSelectedImage(images[prevIndex]);
     }
-  };
+  }, [selectedImage, images]);
 
-  const handleNextImage = () => {
+  const handleNextImage = useCallback(() => {
     if (selectedImage) {
       const currentIndex = images.findIndex(img => img.id === selectedImage.id);
       const nextIndex = (currentIndex + 1) % images.length;
       setSelectedImage(images[nextIndex]);
     }
-  };
+  }, [selectedImage, images]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -138,7 +125,7 @@ const ImageGallery: React.FC = () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('wheel', handleWheel);
     };
-  }, [selectedImage, images]);
+  }, [selectedImage, handlePrevImage, handleNextImage, handleCloseModal]);
 
   useEffect(() => {
     if (selectedImage) {
@@ -180,7 +167,7 @@ const ImageGallery: React.FC = () => {
           {inView ? (
             <img
               src={image.thumbnail}
-              alt={`Image ${image.id}`}
+              alt={`${image.id}`}
               className="w-full h-auto object-cover transition-opacity duration-300 ease-in-out"
               loading="lazy"
             />
@@ -203,11 +190,13 @@ const ImageGallery: React.FC = () => {
           <input
             id="folder-upload"
             type="file"
-            webkitdirectory=""
-            directory=""
-            multiple
             onChange={handleFolderSelect}
             className="hidden"
+            {...({
+              webkitdirectory: "",
+              directory: "",
+              multiple: true
+            } as ExtendedInputHTMLAttributes)}
           />
         </div>
         {isLoading && (
@@ -234,7 +223,7 @@ const ImageGallery: React.FC = () => {
           <div className="w-[90vw] h-[90vh] flex items-center justify-center">
             <img
               src={selectedImage.fullSize}
-              alt="Full size"
+              alt={`Full size ${selectedImage.id}`}
               className="max-w-full max-h-full object-contain"
               onClick={(e) => e.stopPropagation()}
             />
